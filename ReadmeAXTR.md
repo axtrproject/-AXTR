@@ -22,17 +22,17 @@ B2B integration endpoints
 
 Architecture
 AXTR follows a modular infrastructure design:
-__________________________________________
-|   Clien                                |
-|     ↓                                  |
-|   API Gateway (Key Validation Layer)   | 
-|     ↓                                  |
-|   Feature Extraction                   | 
-|     ↓                                  |
-|   Scoring Engine                       |
-|     ↓                                  |
-|   Risk Score + Confidence + Flags      |
-|________________________________________|
+
+   Clien                                
+     ↓                                  
+   API Gateway (Key Validation Layer)  
+     ↓                                  
+   Feature Extraction                   
+     ↓                                 
+   Scoring Engine                       
+     ↓                                 
+   Risk Score + Confidence + Flags      
+
 
 
 Access Model
