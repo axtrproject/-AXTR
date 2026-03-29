@@ -1,7 +1,12 @@
 from fastapi import FastAPI, Header, HTTPException, Depends, Query
-from typing import Optional
+from typing import Optional, List
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from app.db.mongodb import db, get_verified_db
 from app.core.models import Mode
+from app.core.pipeline import pipeline
+import json
+import re
 
 async def require_token(x_api_token: Optional[str] = Header(None, alias="X-API-Token")):
     if not x_api_token:
@@ -42,6 +47,52 @@ async def get_verified_wallets(
             "reason_codes": row.get("reason_codes", [])
         })
     return {"count": len(results), "results": results}
+
+def _validate_wallet(address: str) -> bool:
+    return re.match(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$", address) is not None
+
+def _load_program_ids() -> List[str]:
+    base = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    path = os.path.join(base, "programs.json")
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return [v["id"] for v in data.values() if "id" in v]
+
+@app.get("/verified/wallet/{address}")
+async def get_verified_wallet(
+    address: str,
+    mode: Mode = Mode.MAINNET,
+    wait: int = Query(15, ge=0, le=60),
+    token: str = Depends(require_token)
+):
+    if not _validate_wallet(address):
+        raise HTTPException(status_code=400, detail="Invalid Solana wallet address")
+    v_db = await get_verified_db()
+    mode_val = mode.value if hasattr(mode, "value") else mode
+    doc = await v_db.verified_wallets.find_one({"wallet": address, "mode": mode_val})
+    if not doc:
+        p_ids = _load_program_ids()
+        try:
+            await pipeline.process_wallet(address, mode, p_ids, skip_ingest=False)
+        except Exception:
+            pass
+        if wait > 0:
+            for _ in range(max(1, wait // 3)):
+                found = await v_db.verified_wallets.find_one({"wallet": address, "mode": mode_val})
+                if found:
+                    doc = found
+                    break
+    if not doc:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    scores = doc.get("scores", {})
+    return {
+        "wallet": doc.get("wallet"),
+        "score": scores.get("total", 0),
+        "confidence": doc.get("confidence", 0),
+        "reason_codes": doc.get("reason_codes", [])
+    }
 
 if __name__ == "__main__":
     import uvicorn

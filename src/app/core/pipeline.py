@@ -68,9 +68,7 @@ class Pipeline:
                 # мы все равно продолжаем анализ, но с пустым набором релевантных подписей.
                 # Это позволит учитывать другие факторы (например, кто спонсировал кошелек).
                 logger.info(f"ℹ️ No direct program matches for {wallet}, but proceeding with general analysis.")
-                # Ограничиваем выборку последними транзакциями, если фильтр не сработал
                 query["wallet"] = wallet
-                query["signature"] = {"$in": []}
 
         cursor = raw_db.raw_transactions.find(query)
         transactions_data = await cursor.to_list(length=1000)

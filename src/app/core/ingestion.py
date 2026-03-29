@@ -177,12 +177,15 @@ class IngestionService:
         if not base_url:
             return []
         
-        url = f"{base_url}/{wallet}/transactions/?api-key={settings.HELIUS_API_KEY}"
+        url = f"{base_url}/{wallet}/transactions"
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
-                response = await client.get(url)
+                response = await client.get(url, params={"api-key": settings.HELIUS_API_KEY, "limit": 100})
                 response.raise_for_status()
                 return response.json()
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Helius API Error for {wallet} on {mode}: {e.response.text}")
+                return []
             except Exception as e:
                 logger.error(f"Helius API Error for {wallet} on {mode}: {e}")
                 return []

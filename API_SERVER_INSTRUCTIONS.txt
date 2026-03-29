@@ -1,0 +1,46 @@
+Шаги запуска API сервера и работы с токенами
+
+1) Подготовка окружения
+- Убедитесь, что установлен Python 3.10+
+- Установите зависимости: pip install fastapi uvicorn motor httpx pydantic pydantic-settings
+- Проверьте MongoDB и доступность URL (по умолчанию mongodb://localhost:27017)
+- Значение базы с результатами: DB_VERIFIED_NAME=Clearbd
+
+2) Запуск сервера
+- Команда из корня проекта:
+- python .\src\api_service\apimain.py
+- Сервер слушает http://0.0.0.0:9001
+
+3) Генерация API токена
+- Команда из корня проекта:
+- python .\src\api.py --label system
+- Токен сохраняется в Clearbd.api_tokens с active=true
+- Скопируйте выведенное значение токена
+
+4) Запрос данных
+- Пример запроса 10 кошельков:
+- curl -H "X-API-Token: <ВАШ_ТОКЕН>" "http://127.0.0.1:9001/verified?count=10&mode=mainnet"
+- Ответ содержит поля: wallet, score, confidence, reason_codes
+
+5) Остановка сервера
+- Остановите процесс комбинацией Ctrl+C в терминале
+- Быстрый запуск из корня проекта:
+ 
+ python .\src\api_service\apimain.py
+- Запуск через uvicorn (рекомендуется):
+uvicorn api_service.apimain:app --app-dir src --host 0.0.0.0 --port 9001
+Примечания
+
+- API не выполняет запись и не запускает анализ, только читает данные из Clearbd
+- Количество выдачи контролируется параметром count (1..100)
+
+Как вызвать
+
+- Пример запроса (PowerShell):
+  Invoke-RestMethod -Uri " http://127.0.0.1:9001/verified/wallet/ВАШ_АДРЕС?wait=15&mode=mainnet " -Headers @{ "X-API-Token" = "d176d60205cce79e46f0f52221489306c6652b3b7bab24d1fefec92c14757cbd" }
+- Через curl:
+  curl -H "X-API-Token: d176d60205cce79e46f0f52221489306c6652b3b7bab24d1fefec92c14757cbd" " http://127.0.0.1:9001/verified/wallet/ <АДРЕС>?wait=15&mode=mainnet"
+
+
+
+uvicorn api_service.apimain:app --app-dir src --host 0.0.0.0 --port 9001
